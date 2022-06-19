@@ -7,12 +7,57 @@ import (
 )
 
 var uploadTLSConnQueue chan *TLSConn
+var uploadImmediateQueue chan *TLSConn
+var uploadMetaQueue chan *TLSConn
+var uploadRequestQueue chan *TLSConn
 
 func init() {
 	uploadTLSConnQueue = make(chan *TLSConn, 1024)
+	uploadImmediateQueue = make(chan *TLSConn, 1024)
+	uploadMetaQueue = make(chan *TLSConn, 1024)
+	uploadRequestQueue = make(chan *TLSConn, 1024)
 }
 
-func createUploadImmediateRequest(c grumble.Context) *core.RequestImmediate {
+func immediateRequestHandler(queue chan *TLSConn) error {
+	conn := <-queue
+	err := sendRequest(conn, createUploadImmediateRequest(conn.Context))
+	if err != nil {
+		return err
+	}
+
+	err = receiveResponse(conn, createUploadCheckResponse(conn.Context))
+	if err != nil {
+		return err
+	}
+
+	uploadMetaQueue <- conn
+	return nil
+}
+
+func sendRequest(conn *TLSConn, able core.IEncodingAble) error {
+	bytes, err := able.WireEncode()
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Write(bytes)
+	return err
+}
+
+func receiveResponse(conn *TLSConn, able core.IEncodingAble) error {
+	bytes := make([]byte, 0)
+	_, err := conn.Read(bytes)
+	if err != nil {
+		return err
+	}
+	err = able.WireDecode(bytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createUploadImmediateRequest(c *grumble.Context) *core.RequestImmediate {
 	fileName := c.Args.String("fileName")
 
 	hash := core.MurmurHash3([]byte(fileName), len(fileName), uint32(time.Now().UnixMilli()))
@@ -26,7 +71,7 @@ func createUploadImmediateRequest(c grumble.Context) *core.RequestImmediate {
 	return &r
 }
 
-func createUploadMetaRequest(c grumble.Context, fileSize uint64, nameHash uint32) *core.RequestUploadMeta {
+func createUploadMetaRequest(c *grumble.Context, fileSize uint64, nameHash uint32) *core.RequestUploadMeta {
 	r := core.RequestUploadMeta{
 		RoutinesNum: core.CommonUint32{
 			Value: uint32(c.Flags.Uint64("threads")),
@@ -46,7 +91,7 @@ func createUploadMetaRequest(c grumble.Context, fileSize uint64, nameHash uint32
 	return &r
 }
 
-func createUploadWorkerRequest(c grumble.Context, nameHash, workerId uint32, content []byte) *core.RequestUploadWorker {
+func createUploadWorkerRequest(c *grumble.Context, nameHash, workerId uint32, content []byte) *core.RequestUploadWorker {
 	r := core.RequestUploadWorker{
 		NameHash: core.CommonUint32{
 			Value: nameHash,

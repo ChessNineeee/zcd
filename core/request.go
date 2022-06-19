@@ -18,8 +18,8 @@ const (
 // IEncodingAble 可编码结构体接口
 //
 type IEncodingAble interface {
-	WireEncode() []byte      // 将结构体线速编码为字节数组
-	WireDecode([]byte) error // 将字节数组线速解码为结构体
+	WireEncode() ([]byte, error) // 将结构体线速编码为字节数组
+	WireDecode([]byte) error     // 将字节数组线速解码为结构体
 }
 
 // RequestBase 请求长度结构体
