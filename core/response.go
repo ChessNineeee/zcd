@@ -1,4 +1,4 @@
-package zcd
+package core
 
 const (
 	UPLOADCHECK RequestType = iota

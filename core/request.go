@@ -1,4 +1,4 @@
-package zcd
+package core
 
 import (
 	"errors"
@@ -36,12 +36,15 @@ func (r *RequestBase) WireDecode(bytes []byte) error {
 	return r.Length.WireDecode(bytes)
 }
 
+func (r *RequestBase) Size() uint32 {
+	return r.Length.Size()
+}
+
 // RequestImmediate 秒传协议请求结构体
 //
 type RequestImmediate struct {
 	RequestBase
-	ContentHash CommonUint32
-	NameHash    CommonUint32
+	NameHash CommonUint32
 }
 
 func (r *RequestImmediate) WireEncode() ([]byte, error) {
@@ -49,12 +52,6 @@ func (r *RequestImmediate) WireEncode() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	hashRes, err := r.ContentHash.WireEncode()
-	if err != nil {
-		return nil, err
-	}
-	res = append(res, hashRes...)
 
 	nameRes, err := r.NameHash.WireEncode()
 	if err != nil {
@@ -74,13 +71,6 @@ func (r *RequestImmediate) WireDecode(bytes []byte) error {
 	}
 	index += 4
 
-	// ContentHash
-	err = r.ContentHash.WireDecode(bytes[index : index+4])
-	if err != nil {
-		return err
-	}
-	index += 4
-
 	// NameHash
 	err = r.NameHash.WireDecode(bytes[index : index+4])
 	if err != nil {
@@ -88,6 +78,10 @@ func (r *RequestImmediate) WireDecode(bytes []byte) error {
 	}
 
 	return nil
+}
+
+func (r *RequestImmediate) Size() uint32 {
+	return r.RequestBase.Size() + r.NameHash.Size()
 }
 
 // FileMeta 文件元信息结构体
@@ -137,6 +131,10 @@ func (f *FileMeta) WireDecode(bytes []byte) error {
 	return nil
 }
 
+func (f *FileMeta) Size() uint32 {
+	return f.FileSize.Size() + f.NameHash.Size() + uint32(len([]byte(f.FileName)))
+}
+
 // RequestUploadMeta 元数据上传请求结构体
 //
 type RequestUploadMeta struct {
@@ -183,6 +181,10 @@ func (r *RequestUploadMeta) WireDecode(bytes []byte) error {
 
 	err = r.FileMeta.WireDecode(bytes[index:r.Length.Value])
 	return err
+}
+
+func (r *RequestUploadMeta) Size() uint32 {
+	return r.RequestBase.Size() + r.RoutinesNum.Size() + r.FileMeta.Size()
 }
 
 // RequestUploadWorker 数据分片上传请求结构体
@@ -250,6 +252,10 @@ func (r *RequestUploadWorker) WireDecode(bytes []byte) error {
 	return nil
 }
 
+func (r *RequestUploadWorker) Size() uint32 {
+	return r.RequestBase.Size() + r.NameHash.Size() + r.WorkerId.Size() + uint32(len(r.Content))
+}
+
 // RequestDelete 数据删除请求结构体
 //
 type RequestDelete struct {
@@ -291,6 +297,10 @@ func (r *RequestDelete) WireDecode(bytes []byte) error {
 	return nil
 }
 
+func (r *RequestDelete) Size() uint32 {
+	return r.RequestBase.Size() + r.NameHash.Size()
+}
+
 // RequestList 数据查询请求结构体
 //
 type RequestList struct {
@@ -316,6 +326,10 @@ func (r *RequestList) WireDecode(bytes []byte) error {
 	}
 
 	return nil
+}
+
+func (r *RequestList) Size() uint32 {
+	return r.RequestBase.Size()
 }
 
 type RequestDownload struct {
@@ -364,6 +378,10 @@ func (r *RequestDownload) WireDecode(bytes []byte) error {
 	return nil
 }
 
+func (r *RequestDownload) Size() uint32 {
+	return r.RequestBase.Size() + r.NameHash.Size() + r.RoutinesNum.Size()
+}
+
 type RequestDownloadWorker struct {
 	RequestBase
 	RoutinesId CommonUint32 // 下载使用协程Id
@@ -408,4 +426,8 @@ func (r *RequestDownloadWorker) WireDecode(bytes []byte) error {
 	err = r.NameHash.WireDecode(bytes[index : index+4])
 
 	return nil
+}
+
+func (r *RequestDownloadWorker) Size() uint32 {
+	return r.RequestBase.Size() + r.NameHash.Size() + r.RoutinesId.Size()
 }

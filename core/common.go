@@ -1,4 +1,4 @@
-package zcd
+package core
 
 import (
 	"encoding/binary"
@@ -25,6 +25,10 @@ func (c *CommonUint32) WireDecode(bytes []byte) error {
 	return nil
 }
 
+func (c *CommonUint32) Size() uint32 {
+	return 4
+}
+
 // CommonUint64
 //
 type CommonUint64 struct {
@@ -43,6 +47,10 @@ func (c *CommonUint64) WireDecode(bytes []byte) error {
 	}
 	c.Value = binary.BigEndian.Uint64(bytes)
 	return nil
+}
+
+func (c *CommonUint64) Size() uint32 {
+	return 8
 }
 
 type CommonBool struct {
@@ -70,4 +78,8 @@ func (c *CommonBool) WireDecode(bytes []byte) error {
 	}
 
 	return nil
+}
+
+func (c *CommonBool) Size() uint32 {
+	return 1
 }
