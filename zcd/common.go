@@ -44,3 +44,30 @@ func (c *CommonUint64) WireDecode(bytes []byte) error {
 	c.Value = binary.BigEndian.Uint64(bytes)
 	return nil
 }
+
+type CommonBool struct {
+	Value bool
+}
+
+func (c *CommonBool) WireEncode() ([]byte, error) {
+	res := make([]byte, 1)
+	if c.Value {
+		res[0] = 1
+	} else {
+		res[0] = 0
+	}
+	return res, nil
+}
+
+func (c *CommonBool) WireDecode(bytes []byte) error {
+	if bytes == nil || len(bytes) != 1 {
+		return errors.New("CommonBool:Invalid Bytes Array")
+	}
+	if bytes[0] == 1 {
+		c.Value = true
+	} else {
+		c.Value = false
+	}
+
+	return nil
+}

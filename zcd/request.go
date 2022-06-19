@@ -181,7 +181,7 @@ func (r *RequestUploadMeta) WireDecode(bytes []byte) error {
 	}
 	index += 4
 
-	err = r.FileMeta.WireDecode(bytes[index:])
+	err = r.FileMeta.WireDecode(bytes[index:r.Length.Value])
 	return err
 }
 
@@ -245,7 +245,7 @@ func (r *RequestUploadWorker) WireDecode(bytes []byte) error {
 	index += 4
 
 	// Content
-	r.Content = bytes[index:]
+	r.Content = bytes[index:r.Length.Value]
 
 	return nil
 }
